@@ -1,18 +1,23 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import {
+  signInStart,
+  signInFailure,
+  signInSuccess,
+} from "../redux/user/userSlice";
+import { useDispatch, useSelector } from "react-redux";
 const SignIn = () => {
   const [formData, setFormData] = useState({});
-  const [error, setError] = useState(false);
-  const [isLoading, setLoading] = useState(false);
+  const { loading, error } = useSelector((state) => state.user);
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
   };
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError(false);
     try {
+      dispatch(signInStart());
       const res = await fetch("api/auth/login", {
         method: "POST",
         headers: {
@@ -22,12 +27,13 @@ const SignIn = () => {
       });
       const data = await res.json();
       if (!data.success) {
-        setError(true);
+        dispatch(signInFailure(data));
+        return;
       }
-      setLoading(false);
+      dispatch(signInSuccess(data));
       navigate("/");
     } catch (error) {
-      setLoading(false);
+      dispatch(signInFailure(error));
     }
   };
   return (
@@ -49,10 +55,10 @@ const SignIn = () => {
           onChange={handleChange}
         />
         <button
-          disabled={isLoading}
+          disabled={loading}
           className="bg-slate-700 text-white p-3 rounded-lg uppercase hover:opacity-60 disabled:opacity-50"
         >
-          {isLoading ? "Loading..." : "Sign In"}
+          {loading ? "Loading..." : "Sign In"}
         </button>
       </form>
       <div className="flex gap-2 mt-5">
@@ -61,7 +67,9 @@ const SignIn = () => {
           Sign up
         </Link>
       </div>
-      <p className="text-red-500 mt-5">{error && "Something went wrong"}</p>
+      <p className="text-red-500 mt-5">
+        {error ? error.error || "Something went wrong" : ""}
+      </p>
     </div>
   );
 };
